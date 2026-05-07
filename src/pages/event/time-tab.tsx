@@ -108,8 +108,7 @@ export default function TimeTab({ event }: TimeTabProps) {
         data: { 
           started_at: new Date().toISOString(),
           title: sessionTitle.trim() || undefined
-        } 
-      },
+        } as any      },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getGetEventSessionsQueryKey(event.id) });
@@ -167,7 +166,7 @@ export default function TimeTab({ event }: TimeTabProps) {
           notes: manualForm.notes || undefined,
           entry_at: new Date().toISOString(),
           user_id: canLogForOthers ? (manualForm.userId || undefined) : undefined,
-        },
+        } as any,
       },
       {
         onSuccess: () => {
@@ -223,12 +222,12 @@ export default function TimeTab({ event }: TimeTabProps) {
 
               {activeSession && (
                 <div className="mt-2 space-y-1">
-                  {activeSession.title && (
-                    <p className="text-sm font-medium text-emerald-400/80 flex items-center gap-1.5">
-                      <Tag className="w-3 h-3" />
-                      {activeSession.title}
-                    </p>
-                  )}
+              {(activeSession as any).title && (
+                <p className="text-sm font-medium text-emerald-400/80 flex items-center gap-1.5">
+                  <Tag className="w-3 h-3" />
+                  {(activeSession as any).title}
+                </p>
+              )}
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                     <span className="text-2xl font-mono font-bold text-emerald-400" data-testid="text-elapsed">

@@ -63,7 +63,7 @@ export default function DashboardPage() {
     setLocation(`/dashboard?tab=${value}`);
   };
 
-  const { user } = useAuth();
+  const { user } = useAuth() as any;
   const toggle2FAMutation = useToggle2FA();
   const [is2FAEnabled, setIs2FAEnabled] = useState(user?.two_factor_enabled ?? false);
 

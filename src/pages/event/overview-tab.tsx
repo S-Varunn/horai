@@ -251,7 +251,7 @@ export default function OverviewTab({ event, members }: OverviewTabProps) {
             </div>
           </div>
 
-          {(isOrganizer || acceptedInvitations.some(i => (i.user_id === user?.id || i.email === user?.email))) && (
+          {(isOrganizer || acceptedInvitations.some((i: any) => (i.user_id === user?.id || i.email === user?.email))) && (
             <div className="flex items-center gap-2 flex-shrink-0">
               {isOrganizer && (
                 <Button
