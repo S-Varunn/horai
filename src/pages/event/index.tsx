@@ -2,11 +2,14 @@ import { useParams, useLocation } from "wouter";
 import { format } from "date-fns";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetEvent,
   useGetOrgMembers,
   useDeleteEvent,
+  useCompleteEvent,
   getGetEventQueryKey,
+  getGetEventSummaryQueryKey,
 } from "@/lib/api-client";
 import { useAuth } from "@/hooks/use-auth";
 import Layout from "@/components/layout";
@@ -18,6 +21,13 @@ import SummaryTab from "./summary-tab";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -26,7 +36,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   ChevronRight,
@@ -37,6 +46,8 @@ import {
   Receipt,
   BarChart3,
   Trash2,
+  CheckCircle2,
+  MoreVertical,
 } from "lucide-react";
 
 export default function EventPage() {
@@ -44,6 +55,7 @@ export default function EventPage() {
   const [, setLocation] = useLocation();
   const { isOrganizer } = useAuth();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: event, isLoading } = useGetEvent(id, {
     query: { queryKey: getGetEventQueryKey(id) },
@@ -54,6 +66,24 @@ export default function EventPage() {
   });
 
   const deleteMutation = useDeleteEvent();
+  const completeMutation = useCompleteEvent();
+
+  const handleCompleteEvent = () => {
+    if (!event) return;
+    completeMutation.mutate(
+      { id: event.id },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetEventQueryKey(id) });
+          queryClient.invalidateQueries({ queryKey: getGetEventSummaryQueryKey(id) });
+          toast.success("Event marked as complete");
+        },
+        onError: (err: any) => {
+          toast.error(err?.data?.message ?? err?.message ?? "Cannot complete — pending expenses exist");
+        },
+      }
+    );
+  };
 
   const handleDeleteEvent = () => {
     if (!event) return;
@@ -124,39 +154,72 @@ export default function EventPage() {
             </p>
           </div>
 
-          {/* Delete Event (Organizer only) */}
+          {/* Actions Dropdown (Organizer only) */}
           {isOrganizer && (
-            <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-destructive hover:bg-destructive/10 border-destructive/30 shrink-0 gap-1.5"
-                  title="Delete Event"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span className="hidden sm:inline">Delete Event</span>
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="bg-card border-border">
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete the event <strong>"{event.title}"</strong>, along with all associated timesheets, logged hours, expenses, and invitations. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    onClick={handleDeleteEvent}
-                    disabled={deleteMutation.isPending}
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 w-9 p-0 rounded-lg border-border hover:bg-accent shrink-0"
+                    title="Event Options"
+                    data-testid="button-event-options"
                   >
-                    {deleteMutation.isPending ? "Deleting..." : "Yes, Delete Event"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                    <MoreVertical className="w-4 h-4 text-foreground" />
+                    <span className="sr-only">Event Options</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 bg-card border-border shadow-lg">
+                  {event.status !== "completed" && (
+                    <DropdownMenuItem
+                      onClick={handleCompleteEvent}
+                      disabled={completeMutation.isPending}
+                      className="gap-2 text-emerald-600 dark:text-emerald-400 focus:text-emerald-600 dark:focus:text-emerald-400 cursor-pointer font-medium"
+                      data-testid="menu-mark-completed"
+                    >
+                      {completeMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      )}
+                      Mark Completed
+                    </DropdownMenuItem>
+                  )}
+                  {event.status !== "completed" && <DropdownMenuSeparator />}
+                  <DropdownMenuItem
+                    onClick={() => setDeleteOpen(true)}
+                    className="gap-2 text-destructive focus:text-destructive cursor-pointer font-medium"
+                    data-testid="menu-delete-event"
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                    Delete Event
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Delete Confirmation Alert Dialog */}
+              <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+                <AlertDialogContent className="bg-card border-border">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete the event <strong>"{event.title}"</strong>, along with all associated timesheets, logged hours, expenses, and invitations. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      onClick={handleDeleteEvent}
+                      disabled={deleteMutation.isPending}
+                    >
+                      {deleteMutation.isPending ? "Deleting..." : "Yes, Delete Event"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
           )}
         </div>
 

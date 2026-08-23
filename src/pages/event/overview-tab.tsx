@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useUpdateEvent,
-  useCompleteEvent,
   useSetEventLead,
   useInviteToEvent,
   useRsvpEvent,
@@ -66,7 +65,6 @@ export default function OverviewTab({ event, members }: OverviewTabProps) {
   const [selectedInvitees, setSelectedInvitees] = useState<string[]>([]);
 
   const updateMutation = useUpdateEvent();
-  const completeMutation = useCompleteEvent();
   const setLeadMutation = useSetEventLead();
   const inviteMutation = useInviteToEvent();
   const rsvpMutation = useRsvpEvent();
@@ -154,19 +152,6 @@ export default function OverviewTab({ event, members }: OverviewTabProps) {
           toast.success(`RSVP ${status}`);
         },
         onError: (err: any) => toast.error(err?.data?.message ?? "Failed to RSVP"),
-      },
-    );
-  };
-
-  const handleComplete = () => {
-    completeMutation.mutate(
-      { id: event.id },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getGetEventQueryKey(event.id) });
-          toast.success("Event marked as complete");
-        },
-        onError: (err: any) => toast.error(err?.data?.message ?? "Cannot complete — pending expenses exist"),
       },
     );
   };
@@ -428,26 +413,6 @@ export default function OverviewTab({ event, members }: OverviewTabProps) {
           ) : (
             <p className="text-xs text-muted-foreground">No accepted collaborators yet</p>
           )}
-
-          <div className="flex items-center gap-2 pt-2 border-t border-border">
-            {event.status !== "completed" && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 border-emerald-600/40 text-emerald-400 hover:text-emerald-400 flex-1"
-                onClick={handleComplete}
-                disabled={completeMutation.isPending}
-                data-testid="button-complete-event"
-              >
-                {completeMutation.isPending ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                )}
-                Mark Complete
-              </Button>
-            )}
-          </div>
         </div>
       )}
 
