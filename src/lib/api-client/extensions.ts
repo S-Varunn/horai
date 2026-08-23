@@ -67,11 +67,12 @@ export interface PairingCodeResponse {
   instructions: string;
 }
 
-export const useGetWhatsAppGatewayStatus = () => {
+export const useGetWhatsAppGatewayStatus = (enabled: boolean = false) => {
   return {
     queryKey: ["/api/whatsapp/gateway-status"],
     queryFn: () => customFetch<WhatsAppGatewayStatus>("/api/whatsapp/gateway-status"),
-    refetchInterval: 3000,
+    enabled,
+    refetchInterval: (enabled ? 6000 : false) as number | false,
   };
 };
 
@@ -95,10 +96,11 @@ export const useRequestGatewayCode = (
   });
 };
 
-export const useGetWhatsAppStatus = () => {
+export const useGetWhatsAppStatus = (enabled: boolean = false) => {
   return {
     queryKey: ["/api/whatsapp/status"],
     queryFn: () => customFetch<WhatsAppStatus>("/api/whatsapp/status"),
+    enabled,
   };
 };
 

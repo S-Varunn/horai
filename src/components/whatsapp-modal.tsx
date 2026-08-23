@@ -37,8 +37,8 @@ export default function WhatsAppModal({ open, onOpenChange }: WhatsAppModalProps
   const [gatewayCode, setGatewayCode] = useState<string | null>(null);
   const [showQr, setShowQr] = useState(false);
 
-  const { data: status, isLoading: isStatusLoading, refetch: refetchStatus } = useQuery<WhatsAppStatus>(useGetWhatsAppStatus());
-  const { data: gateway, refetch: refetchGateway } = useQuery<WhatsAppGatewayStatus>(useGetWhatsAppGatewayStatus());
+  const { data: status, isLoading: isStatusLoading, refetch: refetchStatus } = useQuery(useGetWhatsAppStatus(open));
+  const { data: gateway, refetch: refetchGateway } = useQuery(useGetWhatsAppGatewayStatus(open));
 
   const handlePhoneChange = (val: string) => {
     const res = formatPhoneNumberLive(val);
