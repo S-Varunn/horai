@@ -170,6 +170,37 @@ export default function DashboardPage() {
           )}
         </div>
 
+        {/* 4 Signature Stat Cards (Matching Reference Palette) */}
+        {!isLoading && orgs && orgs.length > 0 && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div className="card-palette-teal-main rounded-2xl p-5 shadow-xs flex flex-col justify-between min-h-[110px]">
+              <span className="text-xs font-semibold tracking-wider text-white/85 uppercase">Organizations</span>
+              <div className="text-3xl font-black tracking-tight mt-2 text-white">{orgs.length}</div>
+            </div>
+
+            <div className="card-palette-teal-dark rounded-2xl p-5 shadow-xs flex flex-col justify-between min-h-[110px]">
+              <span className="text-xs font-semibold tracking-wider text-white/85 uppercase">Team Members</span>
+              <div className="text-3xl font-black tracking-tight mt-2 text-white">
+                {orgs.reduce((sum, o) => sum + (o.member_count || 0), 0)}
+              </div>
+            </div>
+
+            <div className="card-palette-charcoal rounded-2xl p-5 shadow-xs flex flex-col justify-between min-h-[110px]">
+              <span className="text-xs font-semibold tracking-wider text-white/85 uppercase">Total Events</span>
+              <div className="text-3xl font-black tracking-tight mt-2 text-white">
+                {orgs.reduce((sum, o) => sum + (o.event_count || 0), 0)}
+              </div>
+            </div>
+
+            <div className="card-palette-sage rounded-2xl p-5 shadow-xs flex flex-col justify-between min-h-[110px]">
+              <span className="text-xs font-semibold tracking-wider opacity-85 uppercase">Account Security</span>
+              <div className="text-2xl sm:text-3xl font-black tracking-tight mt-2">
+                {is2FAEnabled ? "2FA Active" : "Standard"}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Tabs for Organizations and Security */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="hidden sm:flex bg-muted/40 border border-border">

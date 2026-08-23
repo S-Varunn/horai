@@ -1,7 +1,8 @@
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "sonner";
 import { useEffect } from "react";
+import { Toaster } from "sonner";
+import { ThemeProvider } from "@/hooks/use-theme";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
@@ -62,23 +63,18 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
-        <Toaster
-          position="top-right"
-          richColors
-          theme="dark"
-          toastOptions={{
-            style: {
-              background: "hsl(222 47% 11%)",
-              border: "1px solid hsl(220 30% 18%)",
-              color: "hsl(210 40% 92%)",
-            },
-          }}
-        />
-      </AuthProvider>
+      <ThemeProvider defaultTheme="light" storageKey="horai-ui-theme">
+        <AuthProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+          <Toaster
+            position="top-right"
+            richColors
+            closeButton
+          />
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

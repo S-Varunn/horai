@@ -9,7 +9,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Clock } from "lucide-react";
+import { useTheme } from "@/hooks/use-theme";
+import { Clock, Sun, Moon } from "lucide-react";
 
 const schema = z.object({
   email: z.string().email("Valid email required"),
@@ -20,6 +21,7 @@ type FormData = z.infer<typeof schema>;
 export default function LoginPage() {
   const [, setLocation] = useLocation();
   const { login } = useAuth();
+  const { resolvedTheme, toggleTheme } = useTheme();
   const loginMutation = useLogin();
   const verifyMutation = useVerify2FA();
 
@@ -58,10 +60,9 @@ export default function LoginPage() {
 
   const onVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!twoFactor.userId || code.length !== 6) return;
-
+    if (code.length !== 6) return;
     verifyMutation.mutate(
-      { userId: twoFactor.userId, code },
+      { userId: twoFactor.userId!, code },
       {
         onSuccess: (res: any) => {
           login(res.user as any, res.token);
@@ -76,17 +77,34 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4 relative transition-colors duration-200">
+      {/* Theme Toggle Top Right */}
+      <div className="absolute top-4 right-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleTheme}
+          className="h-9 w-9 p-0 text-muted-foreground hover:text-foreground rounded-xl"
+          title={`Switch to ${resolvedTheme === "dark" ? "Light" : "Dark"} mode`}
+        >
+          {resolvedTheme === "dark" ? (
+            <Sun className="w-4 h-4 text-amber-400" />
+          ) : (
+            <Moon className="w-4 h-4 text-primary" />
+          )}
+        </Button>
+      </div>
+
       <div className="w-full max-w-md page-enter">
         {/* Logo */}
         <div className="flex items-center gap-3 mb-8 justify-center">
-          <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center">
-            <Clock className="w-5 h-5 text-primary" />
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/20 text-primary-foreground">
+            <Clock className="w-5 h-5" />
           </div>
-          <span className="text-xl font-bold tracking-tight text-foreground">TimeCrew</span>
+          <span className="text-2xl font-bold tracking-tight text-foreground font-sans">Horai</span>
         </div>
 
-        <div className="glass-card p-8">
+        <div className="glass-card p-8 shadow-md">
           <h1 className="text-2xl font-bold text-foreground mb-1">
             {twoFactor.required ? "Enter 2FA Code" : "Welcome back"}
           </h1>

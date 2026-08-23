@@ -10,6 +10,7 @@ import {
   useCreateEvent,
   useCreateInviteLink,
   useRevokeInviteLink,
+  useDeleteOrganization,
   getGetOrgQueryKey,
   getGetOrgEventsQueryKey,
   getGetInviteLinksQueryKey,
@@ -30,6 +31,17 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Calendar,
   Users,
   Link2,
@@ -46,10 +58,11 @@ import {
 export default function OrgPage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
-  const { isOrganizer } = useAuth();
+  const { user, isOrganizer } = useAuth();
   const queryClient = useQueryClient();
 
   const [createEventOpen, setCreateEventOpen] = useState(false);
+  const [deleteOrgOpen, setDeleteOrgOpen] = useState(false);
   const [eventForm, setEventForm] = useState({
     title: "",
     description: "",
@@ -70,6 +83,14 @@ export default function OrgPage() {
   const createEventMutation = useCreateEvent();
   const createLinkMutation = useCreateInviteLink();
   const revokeLinkMutation = useRevokeInviteLink();
+  const deleteOrgMutation = useDeleteOrganization({
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orgs"] });
+      toast.success("Organization deleted successfully");
+      setLocation("/dashboard");
+    },
+    onError: (err: any) => toast.error(err?.data?.message ?? err?.message ?? "Failed to delete organization"),
+  });
 
   const handleCreateEvent = () => {
     if (!eventForm.title.trim() || !eventForm.event_date || !eventForm.hourly_rate) return;
@@ -189,15 +210,84 @@ export default function OrgPage() {
               <p className="text-sm text-muted-foreground mt-0.5">Owner: {org.owner_name}</p>
             </div>
             {isOrganizer && (
-              <Button
-                onClick={() => setCreateEventOpen(true)}
-                className="bg-primary hover:bg-primary/90 gap-2"
-                data-testid="button-create-event"
-              >
-                <Plus className="w-4 h-4" />
-                New Event
-              </Button>
+              <div className="flex items-center gap-2">
+                <AlertDialog open={deleteOrgOpen} onOpenChange={setDeleteOrgOpen}>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="text-destructive hover:bg-destructive/10 border-destructive/30 gap-1.5"
+                      title="Delete Organization"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span className="hidden sm:inline">Delete Org</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="bg-card border-border">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Organization "{org.name}"?</AlertDialogTitle>
+                      <AlertDialogDescription className="space-y-2">
+                        <p>
+                          This will permanently delete the entire organization <strong>"{org.name}"</strong> and ALL associated events, time sessions, logged hours, expenses, payroll summaries, and invite links.
+                        </p>
+                        <p className="text-destructive font-medium">
+                          ⚠️ This action is permanent and cannot be undone.
+                        </p>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={() => deleteOrgMutation.mutate({ id: org.id })}
+                        disabled={deleteOrgMutation.isPending}
+                      >
+                        {deleteOrgMutation.isPending ? "Deleting..." : "Yes, Delete Organization"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                <Button
+                  onClick={() => setCreateEventOpen(true)}
+                  className="bg-primary hover:bg-primary/90 gap-2"
+                  data-testid="button-create-event"
+                >
+                  <Plus className="w-4 h-4" />
+                  New Event
+                </Button>
+              </div>
             )}
+          </div>
+        </div>
+
+        {/* 4 Signature Stat Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="card-palette-teal-main rounded-2xl p-5 shadow-xs flex flex-col justify-between min-h-[110px]">
+            <span className="text-xs font-semibold tracking-wider text-white/85 uppercase">Events</span>
+            <div className="text-3xl font-black tracking-tight mt-2 text-white">
+              {events?.length ?? 0}
+            </div>
+          </div>
+
+          <div className="card-palette-teal-dark rounded-2xl p-5 shadow-xs flex flex-col justify-between min-h-[110px]">
+            <span className="text-xs font-semibold tracking-wider text-white/85 uppercase">Members</span>
+            <div className="text-3xl font-black tracking-tight mt-2 text-white">
+              {members?.length ?? 0}
+            </div>
+          </div>
+
+          <div className="card-palette-charcoal rounded-2xl p-5 shadow-xs flex flex-col justify-between min-h-[110px]">
+            <span className="text-xs font-semibold tracking-wider text-white/85 uppercase">Active / Draft</span>
+            <div className="text-3xl font-black tracking-tight mt-2 text-white">
+              {events?.filter((e) => e.status === "active" || e.status === "draft").length ?? 0}
+            </div>
+          </div>
+
+          <div className="card-palette-sage rounded-2xl p-5 shadow-xs flex flex-col justify-between min-h-[110px]">
+            <span className="text-xs font-semibold tracking-wider opacity-85 uppercase">Invite Links</span>
+            <div className="text-2xl sm:text-3xl font-black tracking-tight mt-2">
+              {inviteLinks?.length ?? 0} Active
+            </div>
           </div>
         </div>
 

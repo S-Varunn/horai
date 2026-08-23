@@ -1,17 +1,33 @@
 import { useParams, useLocation } from "wouter";
 import { format } from "date-fns";
+import { useState } from "react";
+import { toast } from "sonner";
 import {
   useGetEvent,
   useGetOrgMembers,
+  useDeleteEvent,
   getGetEventQueryKey,
 } from "@/lib/api-client";
+import { useAuth } from "@/hooks/use-auth";
 import Layout from "@/components/layout";
 import StatusBadge from "@/components/status-badge";
 import OverviewTab from "./overview-tab";
 import TimeTab from "./time-tab";
 import ExpensesTab from "./expenses-tab";
 import SummaryTab from "./summary-tab";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   ChevronRight,
   Loader2,
@@ -20,11 +36,14 @@ import {
   Clock,
   Receipt,
   BarChart3,
+  Trash2,
 } from "lucide-react";
 
 export default function EventPage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
+  const { isOrganizer } = useAuth();
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const { data: event, isLoading } = useGetEvent(id, {
     query: { queryKey: getGetEventQueryKey(id) },
@@ -33,6 +52,28 @@ export default function EventPage() {
   const { data: members = [] } = useGetOrgMembers(event?.org_id ?? "", {
     query: { enabled: !!event?.org_id, queryKey: ["orgMembers", event?.org_id ?? ""] },
   });
+
+  const deleteMutation = useDeleteEvent();
+
+  const handleDeleteEvent = () => {
+    if (!event) return;
+    deleteMutation.mutate(
+      { id: event.id },
+      {
+        onSuccess: () => {
+          toast.success("Event deleted successfully");
+          if (event?.org_id) {
+            setLocation(`/orgs/${event.org_id}`);
+          } else {
+            setLocation("/dashboard");
+          }
+        },
+        onError: (err: any) => {
+          toast.error(err?.message ?? "Failed to delete event");
+        },
+      }
+    );
+  };
 
   if (isLoading) {
     return (
@@ -82,6 +123,41 @@ export default function EventPage() {
               {format(new Date(event.event_date), "EEEE, MMMM d, yyyy 'at' h:mm a")}
             </p>
           </div>
+
+          {/* Delete Event (Organizer only) */}
+          {isOrganizer && (
+            <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive hover:bg-destructive/10 border-destructive/30 shrink-0 gap-1.5"
+                  title="Delete Event"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Delete Event</span>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="bg-card border-border">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete the event <strong>"{event.title}"</strong>, along with all associated timesheets, logged hours, expenses, and invitations. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={handleDeleteEvent}
+                    disabled={deleteMutation.isPending}
+                  >
+                    {deleteMutation.isPending ? "Deleting..." : "Yes, Delete Event"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
 
         {/* Tabs */}
