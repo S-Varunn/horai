@@ -37,8 +37,14 @@ export default function WhatsAppModal({ open, onOpenChange }: WhatsAppModalProps
   const [gatewayCode, setGatewayCode] = useState<string | null>(null);
   const [showQr, setShowQr] = useState(false);
 
-  const { data: status, isLoading: isStatusLoading, refetch: refetchStatus } = useQuery(useGetWhatsAppStatus(open));
-  const { data: gateway, refetch: refetchGateway } = useQuery(useGetWhatsAppGatewayStatus(open));
+  const { data: status, isLoading: isStatusLoading, refetch: refetchStatus } = useQuery({
+    ...useGetWhatsAppStatus(open),
+    refetchInterval: open ? ((query: any) => (query.state.data?.paired ? false : 8000)) : false,
+  });
+  const { data: gateway, refetch: refetchGateway } = useQuery({
+    ...useGetWhatsAppGatewayStatus(open),
+    refetchInterval: open ? ((query: any) => (query.state.data?.status === "connected" ? false : 8000)) : false,
+  });
 
   const handlePhoneChange = (val: string) => {
     const res = formatPhoneNumberLive(val);
@@ -97,16 +103,6 @@ export default function WhatsAppModal({ open, onOpenChange }: WhatsAppModalProps
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
   }, [status?.expires_at, queryClient]);
-
-  // Poll status while open
-  useEffect(() => {
-    if (!open || status?.paired) return;
-    const pollInterval = setInterval(() => {
-      refetchStatus();
-      refetchGateway();
-    }, 3000);
-    return () => clearInterval(pollInterval);
-  }, [open, status?.paired, refetchStatus, refetchGateway]);
 
   const handleCopyText = (text: string, msg: string) => {
     navigator.clipboard.writeText(text);

@@ -72,7 +72,6 @@ export const useGetWhatsAppGatewayStatus = (enabled: boolean = false) => {
     queryKey: ["/api/whatsapp/gateway-status"],
     queryFn: () => customFetch<WhatsAppGatewayStatus>("/api/whatsapp/gateway-status"),
     enabled,
-    refetchInterval: (enabled ? 6000 : false) as number | false,
   };
 };
 
